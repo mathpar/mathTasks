@@ -1,0 +1,297 @@
+Архітектура та математична логіка третьої глави успішно спроектовані й готові до запуску на виконання.
+• Чи переходимо тепер до проектування Глави 4 (Звичайні дроби), де ми детально розпишемо додавання, віднімання дробів та виділення цілої частини?
+• Чи бажаєте ви внести якісь додаткові правила або специфічні ознаки (наприклад, подільність на 4 або 25) в оновлений блок DivisibilityRulesGen?
+Спробувати без персоналізації
+
+ереходимо тепер до проектування Глави 4
+
+Переходимо до проектування Глави 4: Звичайні дроби (завдання з 129 по 184 / тижні 17–23). Цей розділ є фундаментальним, оскільки в ньому школярі вперше виходять за межі цілих чисел.
+Для нашої системи це означає автоматичний перехід багатьох завдань у режим TASK-Q (робота з раціональними числами), де відповідями будуть або правильні дроби числитель/знаменатель, або мішані числа у векторному форматі MathPartner [целая_часть, чисельник/знаменник].
+Згідно з конфігурацією плану, Глава 4 містить 56 великих завдань (7 тижнів), розподілених на 4 теми:
+• 4.1. Поняття дробу, координатний промінь (8 завдань)
+• 4.2. Правильні і неправильні дроби, мішані числа (16 завдань)
+• 4.3. Складання та віднімання звичайних дробів (16 завдань)
+• 4.4. Текстові задачі на дроби (16 завдань)
+Нижче представлено повну структуру підпакета chapters.chapter4, математичну логіку та вихідний код генераторів.
+
+1. Структура підпакета chapters.chapter4
+
+text
+com.mathpartner.generator.chapters.chapter4
+│
+├── Chapter4Generator.java         // Головний диспетчер глави
+├── FractionConceptGen.java        // Генератор для розділу 4.1
+├── FractionTypesAndMixedGen.java  // Генератор для розділу 4.2
+├── FractionArithmeticGen.java     // Генератор для розділу 4.3
+└── FractionTextProblemsGen.java   // Генератор для розділу 4.4
+Будьте обачні, використовуючи код.
+
+2. Реалізація генератора розділу 4.1: FractionConceptGen.java
+
+Генерує базові поняття: знаходження чисельника, знаменника чи визначення дробу за малюнком/умовою. Усі відповіді тут є цілими числами або простими дробами.
+java
+package com.mathpartner.generator.chapters.chapter4;
+
+import com.mathpartner.generator.model.Task;
+import java.util.Random;
+
+public class FractionConceptGen {
+    private final Random random = new Random();
+
+    public Task generateTask(String taskId) {
+        int type = random.nextInt(2);
+        int denominator = 5 + random.nextInt(8); // 5..12
+        int numerator = 1 + random.nextInt(denominator - 1);
+
+        if (type == 0) {
+            String condition = String.format("Кавун розрізали на %d рівних частин\n" +
+                    "і %d частини з'їли. Яку частину кавуна з'їли?", denominator, numerator);
+            String answer = numerator + "/" + denominator;
+            Task task = new Task(taskId, "TASK-Q", condition, answer);
+            task.addTextStep("Знаменник дробу показує, на скільки частин розділили ціле, а чисельник — скільки частин взяли:");
+            return task;
+        } else {
+            String condition = String.format("Укажіть знаменник дробу %d/%d.", numerator, denominator);
+            Task task = new Task(taskId, "TASK-Z", condition, String.valueOf(denominator));
+            task.addTextStep("Знаменник дробу записується під рискою дробу. У даному випадку це:");
+            task.addTextStep(String.valueOf(denominator));
+            return task;
+        }
+    }
+}
+Будьте обачні, використовуючи код.
+
+3. Реалізація генератора розділу 4.2: FractionTypesAndMixedGen.java
+
+Фокусується на перетворенні неправильного дробу в мішане число і навпаки. Застосовуємо векторний формат відповіді MathPartner [цела, чисельник/знаменник].
+java
+package com.mathpartner.generator.chapters.chapter4;
+
+import com.mathpartner.generator.model.Task;
+import java.util.Random;
+
+public class FractionTypesAndMixedGen {
+    private final Random random = new Random();
+
+    public Task generateTask(String taskId) {
+        int type = random.nextInt(2);
+        int whole = 2 + random.nextInt(5);       // Цела частина 2..6
+        int denom = 3 + random.nextInt(6);       // Знаменник 3..8
+        int num = 1 + random.nextInt(denom - 1); // Чисельник < знаменника
+
+        if (type == 0) {
+            // Перетворення неправильного дробу в мішане число
+            int improperNumerator = whole * denom + num;
+            String condition = String.format("Виділіть цілу частину з неправильного дробу %d/%d.", improperNumerator, denom);
+            String answer = String.format("[%d, %d/%d]", whole, num, denom);
+            
+            Task task = new Task(taskId, "TASK-Q", condition, answer);
+            task.addTextStep("Поділимо чисельник на знаменник з остачею. Неповна частка буде цілою частиною, а остача — чисельником:");
+            task.addTextStep(String.format("%d / %d = %d (остача %d)", improperNumerator, denom, whole, num));
+            return task;
+        } else {
+            // Перетворення мішаного числа в неправильний дріб
+            String condition = String.format("Запишіть мішане число [%d, %d/%d]\nу вигляді неправильного дробу.", whole, num, denom);
+            int improperNumerator = whole * denom + num;
+            String answer = improperNumerator + "/" + denom;
+
+            Task task = new Task(taskId, "TASK-Q", condition, answer);
+            task.addTextStep("Помножимо цілу частину на знаменник і додамо чисельник, результат запишемо в чисельник:");
+            task.addTextStep(String.format("%d * %d + %d = %d", whole, denom, num, improperNumerator));
+            return task;
+        }
+    }
+}
+Будьте обачні, використовуючи код.
+
+4. Реалізація генератора розділу 4.3: FractionArithmeticGen.java
+
+Додавання та віднімання дробів з однаковими знаменниками, а також мішаних чисел.
+java
+package com.mathpartner.generator.chapters.chapter4;
+
+import com.mathpartner.generator.model.Task;
+import java.util.Random;
+
+public class FractionArithmeticGen {
+    private final Random random = new Random();
+
+    public Task generateTask(String taskId) {
+        int type = random.nextInt(2);
+        int denom = 5 + random.nextInt(10); // 5..14
+
+        if (type == 0) {
+            // Додавання простих дробів
+            int n1 = 1 + random.nextInt(denom / 2);
+            int n2 = 1 + random.nextInt(denom / 2);
+            String condition = String.format("Обчисліть значення виразу:\n%d/%d + %d/%d = ?", n1, denom, n2, denom);
+            String answer = (n1 + n2) + "/" + denom;
+
+            Task task = new Task(taskId, "TASK-Q", condition, answer);
+            task.addTextStep("При додаванні дробів з однаковими знаменниками додаємо їхні чисельники, а знаменник залишаємо без змін:");
+            task.addTextStep(String.format("(%d + %d) / %d = %d/%d", n1, n2, denom, n1 + n2, denom));
+            return task;
+        } else {
+            // Віднімання мішаних чисел (без позичання одиниці для простоти 5 класу)
+            int w1 = 5 + random.nextInt(4);
+            int w2 = 1 + random.nextInt(3);
+            int n1 = 3 + random.nextInt(3);
+            int n2 = 1 + random.nextInt(2);
+            
+            String condition = String.format("Обчисліть різницю мішаних чисел:\n[%d, %d/%d] - [%d, %d/%d] = ?", w1, n1, denom, w2, n2, denom);
+            String answer = String.format("[%d, %d/%d]", (w1 - w2), (n1 - n2), denom);
+
+            Task task = new Task(taskId, "TASK-Q", condition, answer);
+            task.addTextStep("Окремо виконаємо віднімання цілих частин та окремо — дробових частин:");
+            task.addTextStep(String.format("Ціла частина: %d - %d = %d", w1, w2, w1 - w2));
+            task.addTextStep(String.format("Дробова частина: %d/%d - %d/%d = %d/%d", n1, denom, n2, denom, n1 - n2, denom));
+            return task;
+        }
+    }
+}
+Будьте обачні, використовуючи код.
+
+5. Реалізація генератора розділу 4.4: FractionTextProblemsGen.java
+
+Текстові задачі на дві класичні теми: знаходження дробу від числа та знаходження числа за його дробом. Числа підбираються так, щоб ділення на знаменник виконувалося без остачі (TASK-Z).
+java
+package com.mathpartner.generator.chapters.chapter4;
+
+import com.mathpartner.generator.model.Task;
+import java.util.Random;
+
+public class FractionTextProblemsGen {
+    private final Random random = new Random();
+
+    public Task generateTask(String taskId) {
+        int type = random.nextInt(2);
+        int denom = 4 + random.nextInt(5); // 4..8
+        int part = 12 + random.nextInt(10); // ціла проміжна частка
+        int total = denom * part;           // загальна кількість
+        int num = 2 + random.nextInt(denom - 2); // чисельник
+
+        if (type == 0) {
+            // Знаходження дробу від числа
+            String condition = String.format("У книжці %d сторінок. Оксанка прочитала %d/%d книжки.\n" +
+                    "Скільки сторінок прочитала дівчинка?", total, num, denom);
+            int answer = (total / denom) * num;
+
+            Task task = new Task(taskId, "TASK-Z", condition, String.valueOf(answer));
+            task.addTextStep("Щоб знайти дріб від числа, потрібно це число поділити на знаменник і помножити на чисельник:");
+            task.addTextStep(String.format("%d / %d * %d = %d", total, denom, num, answer));
+            return task;
+        } else {
+            // Знаходження числа за його дробом
+            int knownValue = part * num;
+            String condition = String.format("Турист пройшов %d км, що становить %d/%d всього шляху.\n" +
+                    "Яка довжина всього маршруту туриста?", knownValue, num, denom);
+
+            Task task = new Task(taskId, "TASK-Z", condition, String.valueOf(total));
+            task.addTextStep("Щоб знайти число за його дробом, потрібно відому частину поділити на чисельник і помножити на знаменник:");
+            task.addTextStep(String.format("%d / %d * %d = %d", knownValue, num, denom, total));
+            return task;
+        }
+    }
+}
+Будьте обачні, використовуючи код.
+
+6. Головний диспетчер глави: Chapter4Generator.java
+
+Керує автоматичним експортом 56 індивідуальних файлів у відведену папку. Назви файлів формуються за вашим стандартом: без слова PAGE, а пробіли замінюються підкресленнями.
+java
+package com.mathpartner.generator.chapters.chapter4;
+
+import com.mathpartner.generator.model.Assignment;
+import com.mathpartner.generator.engine.MathparRenderer;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
+public class Chapter4Generator {
+
+    private final FractionConceptGen section41 = new FractionConceptGen();
+    private final FractionTypesAndMixedGen section42 = new FractionTypesAndMixedGen();
+    private final FractionArithmeticGen section43 = new FractionArithmeticGen();
+    private final FractionTextProblemsGen section44 = new FractionTextProblemsGen();
+    private final MathparRenderer renderer = new MathparRenderer();
+
+    public void generateAndSaveAll(String outputDirectory) {
+        File dir = new File(outputDirectory);
+        if (!dir.exists()) dir.mkdirs();
+
+        // Початковий індекс для Глави 4 (після Глави 1 [56] та Глави 2)
+        int absoluteIndex = 97; // Якщо Глава 3 була пропущена тимчасово, ставимо за планом тижнів 17..23 (абсолютний індекс 129)
+        absoluteIndex = 129; 
+
+        // 4.1. Поняття дробу (8 завдань)
+        for (int i = 1; i <= 8; i++) {
+            saveToFile(outputDirectory, generateSection41(absoluteIndex++));
+        }
+
+        // 4.2. Правильні/неправильні, мішані (16 завдань)
+        for (int i = 1; i <= 16; i++) {
+            saveToFile(outputDirectory, generateSection42(absoluteIndex++));
+        }
+
+        // 4.3. Додавання та віднімання дробів (16 завдань)
+        for (int i = 1; i <= 16; i++) {
+            saveToFile(outputDirectory, generateSection43(absoluteIndex++));
+        }
+
+        // 4.4. Текстові задачі на дроби (16 завдань)
+        for (int i = 1; i <= 16; i++) {
+            saveToFile(outputDirectory, generateSection44(absoluteIndex++));
+        }
+    }
+
+    private void saveToFile(String baseDir, Assignment assignment) {
+        String header = assignment.getPageHeader();
+        String cleanName = header.toUpperCase().startsWith("PAGE ") ? header.substring(5) : header;
+        cleanName = cleanName.trim().replaceAll("[\\s\\s]+", "_");
+        
+        File targetFile = new File(baseDir, cleanName + ".txt");
+        try (FileWriter writer = new FileWriter(targetFile)) {
+            writer.write(renderer.renderAssignment(assignment));
+            System.out.println("Збережено файл Глави 4: " + targetFile.getName());
+        } catch (IOException e) {
+            System.err.println("Помилка запису файлу дробів: " + e.getMessage());
+        }
+    }
+
+    private Assignment createHolder(int absIndex, String sectionTitle) {
+        int week = ((absIndex - 1) / 8) + 1;
+        int taskNum = ((absIndex - 1) % 8) + 1;
+        String header = String.format("PAGE UA-SM-05-Week%02d-Task%02d %s", week, taskNum, sectionTitle.toUpperCase());
+        return new Assignment(header);
+    }
+
+    private Assignment generateSection41(int absIndex) {
+        Assignment a = createHolder(absIndex, "Поняття дробу та координатний промінь");
+        for (int t = 1; t <= 10; t++) a.addTask(section41.generateTask(String.format("%02d", t)));
+        return a;
+    }
+
+    private Assignment generateSection42(int absIndex) {
+        Assignment a = createHolder(absIndex, "Види дробів та мішані числа");
+        for (int t = 1; t <= 10; t++) a.addTask(section42.generateTask(String.format("%02d", t)));
+        return a;
+    }
+
+    private Assignment generateSection43(int absIndex) {
+        Assignment a = createHolder(absIndex, "Додавання та віднімання звичайних дробів");
+        for (int t = 1; t <= 10; t++) a.addTask(section43.generateTask(String.format("%02d", t)));
+        return a;
+    }
+
+    private Assignment generateSection44(int absIndex) {
+        Assignment a = createHolder(absIndex, "Текстові задачі на звичайні дроби");
+        for (int t = 1; t <= 10; t++) a.addTask(section44.generateTask(String.format("%02d", t)));
+        return a;
+    }
+}
+Будьте обачні, використовуючи код.
+Модуль для генерації 56 файлів звичайних дробів успішно спроектовано.
+• Чи переходимо до проектування Глави 5 (Десяткові дроби та відсотки), яка розгортає ще 72 файли завдань для платформи?
+• Чи бажаєте ви додати в арифметику дробів (розділ 4.3) випадки віднімання дробів від цілої одиниці (наприклад, 1 - 3/7), що часто зустрічається в курсі 5 класу?
+Спробувати без персоналізації
+

@@ -1,0 +1,288 @@
+Прийнято! Змінюємо черговість та переходимо до проектування Глави 3: Подільність натуральних чисел (завдання з 97 по 128 / тижні 13–16). Це чудовий тактичний хід, оскільки алгоритми подільності, пошуку дільників та розкладання на прості множники є виключно числовими і закладають ідеальну базу перед дробовими темами.
+Згідно з нашою загальною конфігурацією (CoursePlanConfig), для Главе 3 виділено 32 великих завдання (4 навчальних тижні), які розподілені так:
+• 3.1. Дільники і кратні (8 завдань)
+• 3.2. Ознаки подільності (16 завдань)
+• 3.3. Прості та складені числа (8 завдань)
+Нижче представлено повну структуру підпакета chapters.chapter3, архітектуру та готовий вихідний код базового класу-генератора разом із допоміжними математичними модулями.
+
+1. Структура підпакета chapters.chapter3
+
+Усі файли логічно розміщуються у відповідній директорії проєкту:
+text
+com.mathpartner.generator.chapters.chapter3
+│
+├── Chapter3Generator.java        // Головний диспетчер глави
+├── DivisorsAndMultiplesGen.java   // Генератор для розділу 3.1
+├── DivisibilityRulesGen.java     // Генератор для розділу 3.2
+└── PrimeAndCompositeGen.java     // Генератор для розділу 3.3
+Будьте обачні, використовуючи код.
+
+2. Реалізація генератора розділу 3.1: DivisorsAndMultiplesGen.java
+
+Цей клас генерує завдання на пошук усіх дільників або спільних кратних. Зверніть увагу: оскільки дільників або кратних може бути декілька, відповіді автоматично пакуються у математичні об'єкти платформи MathPartner: множини \{...\} (порядок неважливий) або вектори [...] (якщо просимо впорядкувати).
+java
+package com.mathpartner.generator.chapters.chapter3;
+
+import com.mathpartner.generator.model.Task;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
+public class DivisorsAndMultiplesGen {
+    private final Random random = new Random();
+
+    public Task generateTask(String taskId) {
+        int type = random.nextInt(2);
+        
+        if (type == 0) {
+            // Знайдіть усі дільники числа N
+            int[] pool = {12, 18, 20, 24, 28, 30};
+            int n = pool[random.nextInt(pool.length)];
+            
+            List<Integer> divisors = new ArrayList<>();
+            for (int i = 1; i <= n; i++) {
+                if (n % i == 0) divisors.add(i);
+            }
+            
+            // Формуємо відповідь у вигляді множини \{1, 2, ...\}
+            StringBuilder ans = new StringBuilder("\\{");
+            for (int i = 0; i < divisors.size(); i++) {
+                ans.append(divisors.get(i));
+                if (i < divisors.size() - 1) ans.append(", ");
+            }
+            ans.append("\\}");
+
+            Task task = new Task(taskId, "TASK-Z", "Знайдіть усі дільники числа " + n + ".", ans.toString());
+            task.addTextStep("Перевіримо всі натуральні числа, на які задане число ділиться без остачі:");
+            task.addTextStep("Дільниками числа " + n + " є: " + divisors.toString());
+            return task;
+        } else {
+            // Знайдіть найменше спільне кратне (НСК) двох чисел
+            int a = 4 + random.nextInt(5); // 4..8
+            int b = 6 + random.nextInt(6); // 6..11
+            if (a == b) b += 2;
+            
+            int gcd = 1;
+            for (int i = 1; i <= Math.min(a, b); i++) {
+                if (a % i == 0 && b % i == 0) gcd = i;
+            }
+            int lcm = (a * b) / gcd;
+
+            Task task = new Task(taskId, "TASK-Z", String.format("Знайдіть найменше спільне кратне (НСК)\nчисел %d та %d.", a, b), String.valueOf(lcm));
+            task.addTextStep(String.format("Знайдемо найменше натуральне число, яке ділиться і на %d, і на %d:", a, b));
+            task.addTextStep("Шукане найменше спільне кратне дорівнює:");
+            task.addTextStep(String.valueOf(lcm));
+            return task;
+        }
+    }
+}
+Будьте обачні, використовуючи код.
+
+3. Реалізація генератора розділу 3.2: DivisibilityRulesGen.java
+
+Цей клас фокусується на ознаках подільності на 2, 3, 5, 9, 10. Задачі формулюються однозначно: просимо вибрати парні числа, числа, що діляться на 5, або підставити цифру.
+java
+package com.mathpartner.generator.chapters.chapter3;
+
+import com.mathpartner.generator.model.Task;
+import java.util.Random;
+
+public class DivisibilityRulesGen {
+    private final Random random = new Random();
+
+    public Task generateTask(String taskId) {
+        int type = random.nextInt(3);
+        
+        switch (type) {
+            case 0: // Ознака подільності на 5 або 10
+                int base = 100 + random.nextInt(800);
+                int lastDigit = random.nextBoolean() ? 0 : 5;
+                int num5 = base * 10 + lastDigit;
+                
+                Task task0 = new Task(taskId, "TASK-Z", "Чи ділиться число " + num5 + " на 5?\n" +
+                        "Якщо ділиться, запишіть у відповідь 1, якщо ні — 0.", "1");
+                task0.addTextStep("На 5 діляться всі натуральні числа, які закінчуються цифрою 0 або 5.");
+                task0.addTextStep("Число закінчується на " + lastDigit + ", тому воно ділиться на 5.");
+                return task0;
+
+            case 1: // Ознака подільності на 3 або 9
+                int d1 = 1 + random.nextInt(8);
+                int d2 = random.nextInt(9);
+                int sum = d1 + d2;
+                // Підбираємо третю цифру так, щоб сума ділилася на 3
+                int d3 = (3 - (sum % 3)) % 3;
+                int num3 = d1 * 100 + d2 * 10 + d3;
+                
+                Task task1 = new Task(taskId, "TASK-Z", "Обчисліть суму цифр числа " + num3 + "\n" +
+                        "та перевірте, чи ділиться воно на 3.", String.valueOf(d1 + d2 + d3));
+                task1.addTextStep("Число ділиться на 3, якщо сума його цифр ділиться на 3. Знайдемо суму:");
+                task1.addTextStep(d1 + " + " + d2 + " + " + d3 + " = " + (d1 + d2 + d3));
+                return task1;
+
+            default: // Задачі на підстановку зірочки
+                int start = 450;
+                Task task2 = new Task(taskId, "TASK-Z", "Яку найменшу цифру потрібно поставити замість *\n" +
+                        "у записі числа 45*, щоб воно ділилося на 2?", "0");
+                task2.addTextStep("Щоб число ділилося на 2, воно має закінчуватися парною цифрою (0, 2, 4, 6, 8).");
+                task2.addTextStep("Найменша з цих цифр — це 0.");
+                return task2;
+        }
+    }
+}
+Будьте обачні, використовуючи код.
+
+4. Реалізація генератора розділу 3.3: PrimeAndCompositeGen.java
+
+Цей клас генерує завдання на визначення типу числа або його розкладання на прості множники.
+java
+package com.mathpartner.generator.chapters.chapter3;
+
+import com.mathpartner.generator.model.Task;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+public class PrimeAndCompositeGen {
+    private final Random random = new Random();
+
+    public Task generateTask(String taskId) {
+        int type = random.nextInt(2);
+        
+        if (type == 0) {
+            // Розкладання на прості множники
+            int[] pool = {12, 18, 20, 28, 30, 42};
+            int n = pool[random.nextInt(pool.length)];
+            
+            List<Integer> factors = new ArrayList<>();
+            int temp = n;
+            for (int i = 2; i <= temp; i++) {
+                while (temp % i == 0) {
+                    factors.add(i);
+                    temp /= i;
+                }
+            }
+            
+            // Записуємо у векторний формат для впорядкованого результату множників: [2, 2, 3]
+            StringBuilder ans = new StringBuilder("[");
+            for (int i = 0; i < factors.size(); i++) {
+                ans.append(factors.get(i));
+                if (i < factors.size() - 1) ans.append(", ");
+            }
+            ans.append("]");
+
+            Task task = new Task(taskId, "TASK-Z", "Розкладіть число " + n + " на прості множники.", ans.toString());
+            task.addTextStep("Послідовно поділимо число на найменші прості дільники:");
+            task.addTextStep("Отримаємо прості множники: " + factors.toString());
+            return task;
+        } else {
+            // Визначення простого чи складеного числа
+            int[] primes = {17, 19, 23, 29, 31};
+            int p = primes[random.nextInt(primes.length)];
+            
+            Task task = new Task(taskId, "TASK-Z", "Чи є число " + p + " простим?\n" +
+                    "Якщо так, запишіть у відповідь 1, якщо воно складене — 0.", "1");
+            task.addTextStep("Число називається простим, якщо воно має рівно два дільники: одиницю і саме себе.");
+            task.addTextStep("Число " + p + " не має інших дільників, тому воно є простим.");
+            return task;
+        }
+    }
+}
+Будьте обачні, використовуючи код.
+
+5. Головний менеджер-генератор глави: Chapter3Generator.java
+
+Цей клас збирає всі модулі разом та керує експортом файлів, підставляючи назви на основі першого рядка (без слова PAGE).
+java
+package com.mathpartner.generator.chapters.chapter3;
+
+import com.mathpartner.generator.model.Assignment;
+import com.mathpartner.generator.engine.MathparRenderer;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Random;
+
+public class Chapter3Generator {
+
+    private final DivisorsAndMultiplesGen section31 = new DivisorsAndMultiplesGen();
+    private final DivisibilityRulesGen section32 = new DivisibilityRulesGen();
+    private final PrimeAndCompositeGen section33 = new PrimeAndCompositeGen();
+    private final MathparRenderer renderer = new MathparRenderer();
+
+    public void generateAndSaveAll(String outputDirectory) {
+        File dir = new File(outputDirectory);
+        if (!dir.exists()) dir.mkdirs();
+
+        // Початковий індекс для Глави 3 (після 56 завдань Глави 1 та 40 завдань Глави 2)
+        // Глава 3 займає тижні 13, 14, 15, 16. Всього 32 завдання.
+        int absoluteIndex = 97; 
+
+        // 3.1. Дільники і кратні (8 завдань)
+        for (int i = 1; i <= 8; i++) {
+            saveToFile(outputDirectory, generateSection31(absoluteIndex++));
+        }
+
+        // 3.2. Ознаки подільності (16 завдань)
+        for (int i = 1; i <= 16; i++) {
+            saveToFile(outputDirectory, generateSection32(absoluteIndex++));
+        }
+
+        // 3.3. Прості та складені числа (8 завдань)
+        for (int i = 1; i <= 8; i++) {
+            saveToFile(outputDirectory, generateSection33(absoluteIndex++));
+        }
+    }
+
+    private void saveToFile(String baseDir, Assignment assignment) {
+        String header = assignment.getPageHeader();
+        String cleanName = header.toUpperCase().startsWith("PAGE ") ? header.substring(5) : header;
+        cleanName = cleanName.trim().replaceAll("[\\s\\s]+", "_");
+        
+        File targetFile = new File(baseDir, cleanName + ".txt");
+        try (FileWriter writer = new FileWriter(targetFile)) {
+            writer.write(renderer.renderAssignment(assignment));
+            System.out.println("Збережено файл Глави 3: " + targetFile.getName());
+        } catch (IOException e) {
+            System.err.println("Помилка запису файлу: " + e.getMessage());
+        }
+    }
+
+    private Assignment createHolder(int absIndex, String sectionTitle) {
+        int week = ((absIndex - 1) / 8) + 1;
+        int taskNum = ((absIndex - 1) % 8) + 1;
+        String header = String.format("PAGE UA-SM-05-Week%02d-Task%02d %s", week, taskNum, sectionTitle.toUpperCase());
+        return new Assignment(header);
+    }
+
+    private Assignment generateSection31(int absIndex) {
+        Assignment a = createHolder(absIndex, "Дільники і кратні");
+        for (int t = 1; t <= 10; t++) {
+            a.addTask(section31.generateTask(String.format("%02d", t)));
+        }
+        return a;
+    }
+
+    private Assignment generateSection32(int absIndex) {
+        Assignment a = createHolder(absIndex, "Ознаки подільності");
+        for (int t = 1; t <= 10; t++) {
+            a.addTask(section32.generateTask(String.format("%02d", t)));
+        }
+        return a;
+    }
+
+    private Assignment generateSection33(int absIndex) {
+        Assignment a = createHolder(absIndex, "Прості та складені числа");
+        for (int t = 1; t <= 10; t++) {
+            a.addTask(section33.generateTask(String.format("%02d", t)));
+        }
+        return a;
+    }
+}
+Будьте обачні, використовуючи код.
+Архітектура та математична логіка третьої глави успішно спроектовані й готові до запуску на виконання.
+• Чи переходимо тепер до проектування Глави 4 (Звичайні дроби), де ми детально розпишемо додавання, віднімання дробів та виділення цілої частини?
+• Чи бажаєте ви внести якісь додаткові правила або специфічні ознаки (наприклад, подільність на 4 або 25) в оновлений блок DivisibilityRulesGen?
+Спробувати без персоналізації
+
